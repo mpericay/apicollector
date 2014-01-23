@@ -213,10 +213,12 @@ class apiretriever {
             return false;
         }
         
-        $limit = 1; // to test it
+        //default limit is only 1 record
+        $limitParam = $this->getParameter("LIMIT");
+        $limit = $limitParam ? $limitParam : 1;
         
         $names = $this->getNames($limit, true);
-        //if(!names) die("Error querying DB"); 
+        if(!$names) $this->logError("Error querying names"); 
         $data = $this->getJson($names);
         
         switch($this->profile) {
@@ -241,6 +243,7 @@ class apiretriever {
         $sql .= " WHERE ". $this->config["queryfield"] . " IS NOT NULL";
         if($onlynull) $sql .= " AND ". $this->config["updatefield"] . " IS NULL";
         if($limit) $sql .= " LIMIT ".$limit;
+        //$sql .= " WHERE gni_resource_uri = 'http://gni.globalnames.org/name_strings/6192982.xml'";
         
         $names = $this->executeSQL($sql,true);
 
@@ -261,7 +264,10 @@ class apiretriever {
     			//is service down?
     			if(count($data) > 3 && count($data) == $this->errors) die($this->config["url"]." doesn't seem to be responding");
     			
-    			sleep(1);
+    			// Default sleep is 1 second
+    			$sleepParam = $this->getParameter("SLEEP");
+        		$sleep = $sleepParam ? (int) $sleepParam : 1;
+    			sleep($sleep);
 	    		$search = $this->config["url"];
 	    		//does it need to be encoded?
 	    		$search .= $this->config["queryfieldencode"] ? urlencode($names[$i][$this->config["queryfield"]]) : $names[$i][$this->config["queryfield"]];
@@ -307,9 +313,8 @@ class apiretriever {
     
     public function parseGniResourceJson($data) {
     	
-    	$values = array();
-    	
     	foreach ($data as $key => $json) {
+    		$values = array();
     		if($json->data) {
     			$somethingfound = 0;
     			for($i = 0; $i < count($json->data); $i++) {
@@ -350,7 +355,7 @@ class apiretriever {
     	$result['total'] = count($data);
     	
     	foreach ($data as $queryfield => $gnidata) {
-    		//print_r($gnidata); die();
+
     		$sql = "UPDATE " . $this->config["dbtable"] . " SET " . $this->config["updatefield"]. "=";
     		if($gnidata) {
     			$sql .=  $gnidata['hits'];
@@ -366,8 +371,6 @@ class apiretriever {
     			$sql .=  "0";
     		}
     		$sql .= " WHERE gni.\"" . $this->config["queryfield"] . "\"='" . $queryfield . "'";
-    		
-    		//die($sql);
 
     		$wentwell = $this->executeSQL($sql,false);
 
