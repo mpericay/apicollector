@@ -15,6 +15,10 @@ class apiretriever {
     private $log = null;
     private $db = null; 
     private $config = false;
+    private $totalQueries = 0;
+    private $found = 0;
+    private $notfound = 0;
+    private $errorsDB = 0;    
     private $errors = 0;
     private $error_string = "";
 
@@ -218,24 +222,34 @@ class apiretriever {
         $limit = $limitParam ? $limitParam : 1;
         
         $names = $this->getNames($limit, true);
-        if(!$names) $this->logError("Error querying names"); 
-        $data = $this->getJson($names);
         
-        switch($this->profile) {
-        	case "gni_detail":
-        		$results = $this->parseGniResourceJson($data);
-        	break;
-        	case "gni":
-        	default:
-        		$results = $this->parseGniJson($data);
-        	break;
-        }
-        
-        $inserted = $this->insertResults($results); 
+        for($i=0; $i<count($names); $i++) {
+        	
+    		$this->sleep($this->getParameter("SLEEP"));
+    		        	
+	        $data = $this->getJson($names[$i][$this->config["queryfield"]]);
+	        
+	        switch($this->profile) {
+	        	case "gni_detail":
+	        		$results = $this->parseGniResourceJson($data);
+	        	break;
+	        	case "gni":
+	        	default:
+	        		$results = $this->parseGniJson($data);
+	        	break;
+	        }
+	    
+        	$inserted = $this->insertResults($results, $names[$i][$this->config["queryfield"]]);
+        } 
         
         $this->drawResults($inserted);
     }
-
+    
+    private function sleep($sleepParam) {
+    	// Default sleep is 1 second
+        $sleep = $sleepParam ? (int) $sleepParam : 1;
+    	sleep($sleep);
+    } 
 
     private function getNames($limit, $onlynull) {
         //Build SQL
@@ -243,99 +257,78 @@ class apiretriever {
         $sql .= " WHERE ". $this->config["queryfield"] . " IS NOT NULL";
         if($onlynull) $sql .= " AND ". $this->config["updatefield"] . " IS NULL";
         if($limit) $sql .= " LIMIT ".$limit;
-        //$sql .= " WHERE gni_resource_uri = 'http://gni.globalnames.org/name_strings/6192982.xml'";
         
         $names = $this->executeSQL($sql,true);
+        
+        if(!$names) die("No records match can be processed by ".$this->profile. ". Is ". $this->config["queryfield"] . " always empty? Is ". $this->config["updatefield"] . " always full?");
+        else $this->totalQueries = count($names); 
 
         return $names;
     }
 
 
-    private function getJson($names) {
+    private function getJson($name) {
 
-		$data = array();
-		
-    	// loop over names
-    	for($i=0; $i<count($names); $i++) {
-    		$name = $names[$i][$this->config["queryfield"]];
-
-    		if(!$data[$name]) {
+    	if($name != '') {
 	    		
-    			//is service down?
-    			if(count($data) > 3 && count($data) == $this->errors) die($this->config["url"]." doesn't seem to be responding");
+    		//is service down?
+    		//if(count($data) > 3 && count($data) == $this->errors) die($this->config["url"]." doesn't seem to be responding");
     			
-    			// Default sleep is 1 second
-    			$sleepParam = $this->getParameter("SLEEP");
-        		$sleep = $sleepParam ? (int) $sleepParam : 1;
-    			sleep($sleep);
-	    		$search = $this->config["url"];
-	    		//does it need to be encoded?
-	    		$search .= $this->config["queryfieldencode"] ? urlencode($names[$i][$this->config["queryfield"]]) : $names[$i][$this->config["queryfield"]];
-	    		//provisional: we use json format, not xml
-	    		$search = str_replace(".xml", ".json", $search);
-	    		
-	    		$content = file_get_contents($search);
-	    		
-	        	if($content === false) {
-	        		$this->errors ++;
-	        		$this->error_string .= ";".$search;
-	        		//die("<a href='".$search."'>".$search."</a> not found. Aborting.");
-	        	} else {
-	        		$data[$name] = json_decode($content);
-	        	}
-    		}
+	    	$search = $this->config["url"];
+	    	//does it need to be encoded?
+	    	$search .= $this->config["queryfieldencode"] ? urlencode($name) : $name;
+	    	//provisional: we use json format, not xml
+	    	$search = str_replace(".xml", ".json", $search);
+	    	
+	    	$content = file_get_contents($search);
+	    	
+	        if($content === false) {
+	        	$this->errors ++;
+	        	$this->error_string .= ";".$search;
+	        	//die("<a href='".$search."'>".$search."</a> not found. Aborting.");
+	        } else {
+	        	$data = json_decode($content);
+	        }
     	}
     	
         return $data;
     }
 
 
-    public function parseGniJson($data) {
+    public function parseGniJson($json) {
     	
-    	$values = array();
-    	
-    	foreach ($data as $key => $json) {
-    		if($json->name_strings_total) {
-    			$values ['hits'] = $json -> name_strings_total;
-    			$results = $json -> name_strings;
-    			$values ['resource_uri'] = $results[0]->resource_uri;
-    			//$values ['id'] = false; 
-    			$data[$key] = $values;
-    		} else {
-    			$data[$key] = 0;
-    		}
-    		
+    	if($json->name_strings_total) {
+    		$values ['hits'] = $json -> name_strings_total;
+    		$results = $json -> name_strings;
+    		$values ['resource_uri'] = $results[0]->resource_uri;
+    		//$values ['id'] = false; 
+    	} else {
+    		$values = 0;
     	}
 
-    	return $data;
-
+    	return $values;
     }
     
-    public function parseGniResourceJson($data) {
+    public function parseGniResourceJson($json) {
     	
-    	foreach ($data as $key => $json) {
-    		$values = array();
-    		if($json->data) {
-    			$somethingfound = 0;
-    			for($i = 0; $i < count($json->data); $i++) {
-    				$record = $json->data[$i];
-    				$title = $record->data_source->title;
-    				if($this->isPreferredDataSource($title)) {
-    					$fieldname = str_replace(" ", "_", strtolower ($title));
-    					$values [$fieldname] = $record->records[0]->local_id;
-    					$values['hits'] = 1;//$record->records_number;
-    					$data[$key] = $values;
-    					$somethingfound = 1;
-    				}
-    			}
-    			if(!$somethingfound) {
-    				$data[$key] = 0;
+    	if($json->data) {
+    		$somethingfound = 0;
+    		for($i = 0; $i < count($json->data); $i++) {
+    			$record = $json->data[$i];
+    			$title = $record->data_source->title;
+    			if($this->isPreferredDataSource($title)) {
+    				$fieldname = str_replace(" ", "_", strtolower ($title));
+    				$values [$fieldname] = $record->records[0]->local_id;
+    				$values['hits'] = 1;//$record->records_number;
+    				$somethingfound = 1;
     			}
     		}
-    		
+    		if(!$somethingfound) {
+    			$values = 0;
+    		}
     	}
 
-    	return $data;
+    	return $values;
 
     }    
     
@@ -348,50 +341,42 @@ class apiretriever {
     	else return false; 
     }
     
-    public function insertResults($data) {
-    	
-    	$result = array();
-    	$result['found'] = $result['notfound'] = $result['error'] = 0;
-    	$result['total'] = count($data);
-    	
-    	foreach ($data as $queryfield => $gnidata) {
+    public function insertResults($gnidata, $name) {
 
-    		$sql = "UPDATE " . $this->config["dbtable"] . " SET " . $this->config["updatefield"]. "=";
-    		if($gnidata) {
-    			$sql .=  $gnidata['hits'];
-    			//altres camps
-    			foreach($gnidata as $field => $value) {
-    				// put prefix
-    				$fieldname = $this->profile . "_" . $field;
-    				//we already did updatefield
-    				if($fieldname != $this->config["updatefield"]) $sql .= ", " . $fieldname . "='" . $value . "'";
-    			}
-    		//if not data found	
-    		} else {
-    			$sql .=  "0";
+    	$sql = "UPDATE " . $this->config["dbtable"] . " SET " . $this->config["updatefield"]. "=";
+    	if($gnidata) {
+    		$sql .=  $gnidata['hits'];
+    		//altres camps
+    		foreach($gnidata as $field => $value) {
+    			// put prefix
+    			$fieldname = $this->profile . "_" . $field;
+    			//we already did updatefield
+    			if($fieldname != $this->config["updatefield"]) $sql .= ", " . $fieldname . "='" . $value . "'";
     		}
-    		$sql .= " WHERE gni.\"" . $this->config["queryfield"] . "\"='" . $queryfield . "'";
-
-    		$wentwell = $this->executeSQL($sql,false);
-
-    		if($wentwell) {
-    			if($gnidata) $result['found'] += 1;
-    			else $result['notfound'] += 1;
-    		} else {
-    			$result['error'] += 1;
-    		}
+    	//if no data found	
+    	} else {
+    		$sql .=  "0";
     	}
+    	$sql .= " WHERE gni.\"" . $this->config["queryfield"] . "\"='" . $name . "'";
+    	
+    	$wentwell = $this->executeSQL($sql,false);
+    	if($wentwell) {
+   			if($gnidata) $this->found += 1;
+   			else $this->notfound += 1;
+   		} else {
+   			$this->errorsDB += 1;
+   		}
     	
     	return $result;
     
     }
     
-    public function drawResults($data) {
+    public function drawResults() {
     	
-    	print_r($data['total'] . " records were queried<br>");
-    	print_r($data['found'] . " records were found and inserted in DB<br>");
-    	print_r($data['notfound'] . " records were not found<br>");
-    	print_r($data['error'] . " gave an error when inserting to DB<br>");
+    	print_r($this->totalQueries . " records were queried<br>");
+    	print_r($this->found . " records were found and inserted in DB<br>");
+    	print_r($this->notfound . " records were not found<br>");
+    	print_r($this->errorsDB . " gave an error when inserting to DB<br>");
     	print_r($this->errors . " returned an empty string or timed out:");
     	print_r(str_replace(";", "<br>", $this->error_string));
     }    
