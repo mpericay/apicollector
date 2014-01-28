@@ -146,9 +146,8 @@ class apiretriever {
         if ($this->log) {
             $this->log->add($msg);
         }
-        if ($this->debug) {
-            echo $msg;
-        }
+        
+        echo $msg;
 
         $this->__destruct();
         $this->result = array("error" => 1, "msg" => $msg);
@@ -156,6 +155,14 @@ class apiretriever {
         $this->outputResults();
         die();
     }
+    
+	private function logMsg($msg) {
+		if ($this->debug) {
+	        if ($this->log) {
+	            $this->log->add($msg);
+	    	}
+		}
+	}
 
 
     private function getParameter($name, $default = false, $from = false) {
@@ -262,6 +269,8 @@ class apiretriever {
         
         if(!$names) die("No records match can be processed by ".$this->profile. ". Is ". $this->config["queryfield"] . " always empty? Is ". $this->config["updatefield"] . " always full?");
         else $this->totalQueries = count($names); 
+        
+        $this->logMsg("Queries to do: ".$this->totalQueries);
 
         return $names;
     }
@@ -285,9 +294,10 @@ class apiretriever {
 	        if($content === false) {
 	        	$this->errors ++;
 	        	$this->error_string .= ";".$search;
-	        	//die("<a href='".$search."'>".$search."</a> not found. Aborting.");
+	        	$this->logMsg("Empty query!!! ".$search);
 	        } else {
 	        	$data = json_decode($content);
+	        	$this->logMsg("Query OK: ".$search);
 	        }
     	}
     	
@@ -311,7 +321,7 @@ class apiretriever {
     
     public function parseGniResourceJson($json) {
     	
-    	if($json->data) {
+    	if($json && $json->data) {
     		$somethingfound = 0;
     		for($i = 0; $i < count($json->data); $i++) {
     			$record = $json->data[$i];
@@ -359,6 +369,8 @@ class apiretriever {
     	}
     	$sql .= " WHERE gni.\"" . $this->config["queryfield"] . "\"='" . $name . "'";
     	
+    	$this->logMsg("DB query: ".$sql);
+    	
     	$wentwell = $this->executeSQL($sql,false);
     	if($wentwell) {
    			if($gnidata) $this->found += 1;
@@ -372,7 +384,8 @@ class apiretriever {
     }
     
     public function drawResults() {
-    	
+    	$this->logMsg("ENDED: ".$this->found . " of ". $this->totalQueries . " found.");
+    	$this->logMsg("-----------------------------------------------------------------");
     	print_r($this->totalQueries . " records were queried<br>");
     	print_r($this->found . " records were found and inserted in DB<br>");
     	print_r($this->notfound . " records were not found<br>");
