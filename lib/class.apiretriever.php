@@ -174,30 +174,6 @@ class apiretriever {
         return $default;
     }
 
-
-    private function extend($array,$defArray) {
-        foreach ($defArray as $key => $value) {
-            if (isset($array[$key]) && gettype($array[$key]) == "array") {
-                $array[$key] = $this->extend($array[$key],$defArray[$key]);
-            } else if (!isset($array[$key]) || !$array[$key]) {
-                    $array[$key] = $defArray[$key];
-                }
-        }
-        return $array;
-    }
-
-
-    private function arraySearchRecursive($needle,$haystack) {
-        foreach($haystack as $key => $value) {
-            $current_key=$key;
-            if($needle===$value || (is_array($value) && $this->arraySearchRecursive($needle,$value) !== false)) {
-                return $current_key;
-            }
-        }
-        return false;
-    }
-
-
     private function executeSQL($sql,$getRecords) {
         if ($rs = $this->db->query($sql)) {
             if ($getRecords) {
