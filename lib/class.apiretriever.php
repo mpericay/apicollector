@@ -48,13 +48,6 @@ class apiretriever {
             return false;
         }
 
-        //Get operation and mode
-        /*$this->operation = $this->getParameter("OP");
-        if (!$this->operation) {
-            $this->logError("apicollector::__construct - Parameter missing [OP]");
-            return false;
-        }*/
-
         //Set DB object
         $this->setDBObject();
         if (!$this->db) {
@@ -85,21 +78,31 @@ class apiretriever {
         $this->config["dbport"] = _DB_PORT;
             	
         switch($this->profile) {
+
         	case "gni_detail":
-            	$this->config["dbtable"] = "gni";
-            	$this->config["queryfield"] = "gni_resource_uri";
+            	$this->config["dbtable"] = "api_gni";
+            	$this->config["queryfield"] = array("gni_resource_uri");
             	$this->config["queryfieldencode"] = 0;
             	$this->config["updatefield"] = "gni_detail_hits";
-            	$this->config["url"] = "";
+            	$this->config["urlpattern"] = "[gni_resource_uri]";
+            break;
+        	
+        	case "gbif":
+            	$this->config["dbtable"] = "api_gbif";
+            	//first query field is the one that mustn't be null for querying. The others are not checked
+            	$this->config["queryfield"] = array("genus", "classe_id", "ordre_id", "familia_id");
+            	$this->config["queryfieldencode"] = 1;
+            	$this->config["updatefield"] = "gbif_hits";
+            	$this->config["urlpattern"] = "http://api.gbif.org/v0.9/species/match?class=[classe_id]&order=[ordre_id]&family=[familia_id]&name=[genus]&rank=GENUS";
             break;
         	
         	case "gni":
         	default:
-            	$this->config["dbtable"] = "gni";
-            	$this->config["queryfield"] = "scientific_name";
+            	$this->config["dbtable"] = "api_gni";
+            	$this->config["queryfield"] = array("scientific_name");
             	$this->config["queryfieldencode"] = 1;
             	$this->config["updatefield"] = "gni_hits";
-            	$this->config["url"] = "http://gni.globalnames.org/name_strings.json?search_term=exact:";
+            	$this->config["urlpattern"] = "http://gni.globalnames.org/name_strings.json?search_term=exact:[scientific_name]";
             break;
         }
 
@@ -164,7 +167,6 @@ class apiretriever {
 		}
 	}
 
-
     private function getParameter($name, $default = false, $from = false) {
         if ($from === false) $from = $_REQUEST;
         reset($from);
@@ -210,19 +212,22 @@ class apiretriever {
         	
     		$this->sleep($this->getParameter("SLEEP"));
     		        	
-	        $data = $this->getJson($names[$i][$this->config["queryfield"]]);
+	        $data = $this->getJson($names[$i]);
 	        
 	        switch($this->profile) {
 	        	case "gni_detail":
 	        		$results = $this->parseGniResourceJson($data);
 	        	break;
+	        	case "gbif":
+	        		$results = $this->parseGbifNubJson($data);
+	        	break;	        	
 	        	case "gni":
 	        	default:
 	        		$results = $this->parseGniJson($data);
 	        	break;
 	        }
 	    
-        	$inserted = $this->insertResults($results, $names[$i][$this->config["queryfield"]]);
+        	$inserted = $this->insertResults($results, $names[$i]);
         } 
         
         $this->drawResults($inserted);
@@ -230,20 +235,21 @@ class apiretriever {
     
     private function sleep($sleepParam) {
     	// Default sleep is 1 second
-        $sleep = $sleepParam ? (int) $sleepParam : 1;
+        $sleep = ($sleepParam !== false) ? (int) $sleepParam : 1;
     	sleep($sleep);
     } 
 
     private function getNames($limit, $onlynull) {
         //Build SQL
-        $sql = "SELECT DISTINCT gni.\"" . $this->config["queryfield"] . "\" FROM " . $this->config["dbtable"];
-        $sql .= " WHERE ". $this->config["queryfield"] . " IS NOT NULL";
+        $sql = "SELECT DISTINCT " . implode(",", $this->config["queryfield"]) . " FROM " . $this->config["dbtable"];
+        //only first element of the array musn't be null
+        $sql .= " WHERE ". $this->config["queryfield"][0] . " IS NOT NULL";
         if($onlynull) $sql .= " AND ". $this->config["updatefield"] . " IS NULL";
         if($limit) $sql .= " LIMIT ".$limit;
         
         $names = $this->executeSQL($sql,true);
         
-        if(!$names) die("No records match can be processed by ".$this->profile. ". Is ". $this->config["queryfield"] . " always empty? Is ". $this->config["updatefield"] . " always full?");
+        if(!$names) die("No records match can be processed by ".$this->profile. ". Is ". $this->config["queryfield"][0] . " always empty? Is ". $this->config["updatefield"] . " always full?");
         else $this->totalQueries = count($names); 
         
         $this->logMsg("Queries to do: ".$this->totalQueries);
@@ -253,21 +259,28 @@ class apiretriever {
 
 
     private function getJson($name) {
-
-    	if($name != '') {
+    	
+    	$mainfield = $this->config["queryfield"][0];
+    	
+    	if($name[$mainfield] != '') {
 	    		
-    		//is service down?
-    		//if(count($data) > 3 && count($data) == $this->errors) die($this->config["url"]." doesn't seem to be responding");
-    			
-	    	$search = $this->config["url"];
-	    	//does it need to be encoded?
-	    	$search .= $this->config["queryfieldencode"] ? urlencode($name) : $name;
-	    	//provisional: we use json format, not xml
+	    	$search = $this->config["urlpattern"];
+	    	//we substitute every [field] in pattern for its value
+	    	for($i = 0; $i < count($this->config["queryfield"]); $i++) {
+		    	$field = $this->config["queryfield"][$i];
+		    	//does it need to be encoded?
+		    	$value = $this->config["queryfieldencode"] ? urlencode($name[$field]) : $name[$field];
+		    	//search_term=exact:[scientific_name] becomes search_term=exact:Abida+secale
+		    	$search = str_replace("[".$field."]", $value, $search);
+	    	}
+	    	
+	    	//provisional hack: in gni_detail, we use json format, not xml
 	    	$search = str_replace(".xml", ".json", $search);
 	    	
 	    	$content = file_get_contents($search);
 	    	
-	        if($content === false) {
+	        //log errors or log everything (if DEBUG true)
+	    	if($content === false) {
 	        	$this->errors ++;
 	        	$this->error_string .= ";".$search;
 	        	$this->logMsg("Empty query!!! ".$search);
@@ -294,6 +307,29 @@ class apiretriever {
 
     	return $values;
     }
+    
+    public function parseGbifNubJson($json) {
+    	
+    	if($json->matchType != "NONE") {
+	    	$values ['hits'] = 1;
+	    	$values ['scientific_name'] = $json->scientificName;
+	   		$values ['rank'] = $json->rank; 
+	   		$values ['synonym'] = $json->synonym;
+	   		$values ['confidence'] = $json->confidence;
+	   		$values ['kingdom'] = $json->kingdom;
+    		$values ['phylum'] = $json->phylum;
+	    	$values ['clazz'] = $json->clazz;
+	    	$values ['order'] = $json->order;
+	   		$values ['family'] = $json->family;
+	   		$values ['genus'] = $json->genus;
+	   		if($json->matchType != "EXACT") $values ['note'] = $json->note;
+    	} else {
+    		$values ['hits'] = 0;
+    	}
+    	$values ['match_type'] = $json->matchType;    	
+
+    	return $values;
+    }    
     
     public function parseGniResourceJson($json) {
     	
@@ -337,22 +373,27 @@ class apiretriever {
     			// put prefix
     			$fieldname = $this->profile . "_" . $field;
     			//we already did updatefield
-    			if($fieldname != $this->config["updatefield"]) $sql .= ", " . $fieldname . "='" . $value . "'";
+    			if($fieldname != $this->config["updatefield"]) $sql .= ", " . $fieldname . "='" . pg_escape_string($value) . "'";
     		}
     	//if no data found	
     	} else {
     		$sql .=  "0";
     	}
-    	$sql .= " WHERE gni.\"" . $this->config["queryfield"] . "\"='" . $name . "'";
-    	
-    	$this->logMsg("DB query: ".$sql);
+    	$sql .= " WHERE ";
+    	for($i = 0; $i < count($this->config["queryfield"]); $i++) {
+    		if($where) $where .= " AND "; 
+    		$where .= $this->config["queryfield"][$i] . "='" . $name[$this->config["queryfield"][$i]] . "'";
+    	}
+    	$sql .= $where;
     	
     	$wentwell = $this->executeSQL($sql,false);
     	if($wentwell) {
    			if($gnidata) $this->found += 1;
    			else $this->notfound += 1;
+   			$this->logMsg("DB query: ".$sql);
    		} else {
    			$this->errorsDB += 1;
+   			$this->logMsg("Error updating!!! ".$sql);
    		}
     	
     	return $result;
