@@ -95,6 +95,33 @@ class apiretriever {
             	$this->config["updatefield"] = "gbif_hits";
             	$this->config["urlpattern"] = "http://api.gbif.org/v0.9/species/match?class=[classe_id]&order=[ordre_id]&family=[familia_id]&name=[genus]&rank=GENUS";
             break;
+            
+        	case "mapquest":
+            	$this->config["dbtable"] = "molins";
+            	//first query field is the one that mustn't be null for querying. The others are not checked
+            	$this->config["queryfield"] = array("direccio");
+            	$this->config["queryfieldencode"] = 1;
+            	$this->config["updatefield"] = "mapquest_hits";
+            	$this->config["urlpattern"] = "http://www.mapquestapi.com/geocoding/v1/address?key=Fmjtd%7Cluurnuutnl%2C8w%3Do5-9wr0ga&callback=renderOptions&inFormat=kvp&outFormat=json&location=[direccio]";
+            break; 
+
+            case "opencage":
+            	$this->config["dbtable"] = "molins";
+            	//first query field is the one that mustn't be null for querying. The others are not checked
+            	$this->config["queryfield"] = array("direccio");
+            	$this->config["queryfieldencode"] = 1;
+            	$this->config["updatefield"] = "opencage_hits";
+            	$this->config["urlpattern"] = "http://api.opencagedata.com/geocode/v1/json?query=[direccio]";
+            break;
+            
+            case "google":
+            	$this->config["dbtable"] = "molins";
+            	//first query field is the one that mustn't be null for querying. The others are not checked
+            	$this->config["queryfield"] = array("direccio");
+            	$this->config["queryfieldencode"] = 1;
+            	$this->config["updatefield"] = "google_hits";
+            	$this->config["urlpattern"] = "http://maps.googleapis.com/maps/api/geocode/json?address=[direccio]&sensor=false&region=es";
+            break;
         	
         	case "gni":
         	default:
@@ -104,6 +131,7 @@ class apiretriever {
             	$this->config["updatefield"] = "gni_hits";
             	$this->config["urlpattern"] = "http://gni.globalnames.org/name_strings.json?search_term=exact:[scientific_name]";
             break;
+
         }
 
         return true;
@@ -220,7 +248,16 @@ class apiretriever {
 	        	break;
 	        	case "gbif":
 	        		$results = $this->parseGbifNubJson($data);
-	        	break;	        	
+	        	break;	  
+	        	case "mapquest":
+	        		$results = $this->parseMapQuestJson($data);
+	        	break;
+	        	case "opencage":
+	        		$results = $this->parseOpenCageJson($data);
+	        	break;	
+	        	case "google":
+	        		$results = $this->parseGoogleJson($data);
+	        	break;      	
 	        	case "gni":
 	        	default:
 	        		$results = $this->parseGniJson($data);
@@ -245,7 +282,7 @@ class apiretriever {
         //only first element of the array musn't be null
         $sql .= " WHERE ". $this->config["queryfield"][0] . " IS NOT NULL";
         if($onlynull) $sql .= " AND ". $this->config["updatefield"] . " IS NULL";
-        if($limit) $sql .= " LIMIT ".$limit;
+        if($limit) $sql .= " LIMIT ".$limit;     
         
         $names = $this->executeSQL($sql,true);
         
@@ -276,7 +313,7 @@ class apiretriever {
 	    	
 	    	//provisional hack: in gni_detail, we use json format, not xml
 	    	$search = str_replace(".xml", ".json", $search);
-	    	
+
 	    	$content = file_get_contents($search);
 	    	
 	        //log errors or log everything (if DEBUG true)
@@ -285,6 +322,9 @@ class apiretriever {
 	        	$this->error_string .= ";".$search;
 	        	$this->logMsg("Empty query!!! ".$search);
 	        } else {
+	        	//hack! this is not a json!
+	        	if($this->profile == "mapquest") $content = substr($content,14,-1);
+	        	
 	        	$data = json_decode($content);
 	        	$this->logMsg("Query OK: ".$search);
 	        }
@@ -307,6 +347,44 @@ class apiretriever {
 
     	return $values;
     }
+    
+	public function parseGoogleJson($json) {
+    	
+    	if($json->status == "OK") {
+    		$values ['hits'] = 1;
+    		$results = $json -> results;
+    		$first = $results[0]->geometry->location;
+    		$values ['lat'] = $first->lat;
+    		$values ['lon'] = $first->lng;
+    	} else {
+    		$values ['error'] = $json->status;
+    	}
+
+    	return $values;
+    }
+    
+    public function parseOpenCageJson($json) {
+    	
+    	//TODO
+    	//return $values;
+    } 
+    
+    public function parseMapQuestJson($json) {
+    	
+    	$locations = $json->results[0]->locations[0];
+    	
+    	if($locations && ($locations->adminArea1 == "ES")) {
+    		$values ['hits'] = 1;
+    		$values ['lat'] = $locations->latLng->lat;
+    		$values ['lon'] = $locations->latLng->lng;
+    		
+    		//$values ['id'] = false; 
+    	} else {
+    		$values = 0;
+    	}
+
+    	return $values;
+    }    
     
     public function parseGbifNubJson($json) {
     	
