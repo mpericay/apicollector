@@ -273,7 +273,7 @@ class apiretriever {
     private function sleep($sleepParam) {
     	// Default sleep is 1 second
         $sleep = ($sleepParam !== false) ? (int) $sleepParam : 1;
-    	sleep($sleep);
+    	sleep($sleep/1000);
     } 
 
     private function getNames($limit, $onlynull) {
@@ -459,7 +459,7 @@ class apiretriever {
     	}
     	$sql .= " WHERE ";
     	for($i = 0; $i < count($this->config["queryfield"]); $i++) {
-    		if($where) $where .= " AND "; 
+    		if(isset($where)) $where .= " AND "; 
     		$where .= $this->config["queryfield"][$i] . "='" . $name[$this->config["queryfield"][$i]] . "'";
     	}
     	$sql .= $where;
