@@ -97,30 +97,33 @@ class apiretriever {
             break;
             
         	case "mapquest":
-            	$this->config["dbtable"] = "molins";
+				//limit(23-07-2015): 15,000 transactions/month
+            	$this->config["dbtable"] = "dwc";
             	//first query field is the one that mustn't be null for querying. The others are not checked
-            	$this->config["queryfield"] = array("direccio");
+            	$this->config["queryfield"] = array("locality");
             	$this->config["queryfieldencode"] = 1;
             	$this->config["updatefield"] = "mapquest_hits";
-            	$this->config["urlpattern"] = "http://www.mapquestapi.com/geocoding/v1/address?key=Fmjtd%7Cluurnuutnl%2C8w%3Do5-9wr0ga&callback=renderOptions&inFormat=kvp&outFormat=json&location=[direccio]";
+            	$this->config["urlpattern"] = "http://www.mapquestapi.com/geocoding/v1/address?key=Fmjtd%7Cluurnuutnl%2C8w%3Do5-9wr0ga&callback=renderOptions&inFormat=kvp&outFormat=json&location=[locality]";
             break; 
 
             case "opencage":
-            	$this->config["dbtable"] = "molins";
+				//limit(23-07-2015):  2,500 queries per day
+            	$this->config["dbtable"] = "dwc";
             	//first query field is the one that mustn't be null for querying. The others are not checked
-            	$this->config["queryfield"] = array("direccio");
+            	$this->config["queryfield"] = array("country", "locality","municipality","county","stateProvince");
             	$this->config["queryfieldencode"] = 1;
             	$this->config["updatefield"] = "opencage_hits";
             	$this->config["urlpattern"] = "http://api.opencagedata.com/geocode/v1/json?query=[direccio]";
             break;
             
             case "google":
-            	$this->config["dbtable"] = "molins";
+				//limit(23-07-2015): 2,500 requests per 24 hour period. 5 requests per second
+            	$this->config["dbtable"] = "dwc";
             	//first query field is the one that mustn't be null for querying. The others are not checked
-            	$this->config["queryfield"] = array("direccio");
+            	$this->config["queryfield"] = array("country","locality","municipality","county","stateProvince");
             	$this->config["queryfieldencode"] = 1;
             	$this->config["updatefield"] = "google_hits";
-            	$this->config["urlpattern"] = "http://maps.googleapis.com/maps/api/geocode/json?address=[direccio]&sensor=false&region=es";
+            	$this->config["urlpattern"] = "http://maps.googleapis.com/maps/api/geocode/json?address=[locality]%20[municipality]%20[county]%20[stateProvince]%20[country]&sensor=false&region=es";
             break;
         	
         	case "gni":
@@ -272,7 +275,7 @@ class apiretriever {
     
     private function sleep($sleepParam) {
     	// Default sleep is 1 second
-        $sleep = ($sleepParam !== false) ? (int) $sleepParam : 1;
+        $sleep = ($sleepParam !== false) ? (int) $sleepParam : 1000;
     	sleep($sleep/1000);
     } 
 
@@ -310,6 +313,8 @@ class apiretriever {
 		    	//search_term=exact:[scientific_name] becomes search_term=exact:Abida+secale
 		    	$search = str_replace("[".$field."]", $value, $search);
 	    	}
+			
+			$this->logMsg($search);
 	    	
 	    	//provisional hack: in gni_detail, we use json format, not xml
 	    	$search = str_replace(".xml", ".json", $search);
@@ -349,7 +354,7 @@ class apiretriever {
     }
     
 	public function parseGoogleJson($json) {
-    	
+
     	if($json->status == "OK") {
     		$values ['hits'] = 1;
     		$results = $json -> results;
@@ -451,7 +456,11 @@ class apiretriever {
     			// put prefix
     			$fieldname = $this->profile . "_" . $field;
     			//we already did updatefield
-    			if($fieldname != $this->config["updatefield"]) $sql .= ", " . $fieldname . "='" . pg_escape_string($value) . "'";
+				//mysql_escape_string vs pg_escape_string
+				$func = $this->config["dbtype"] . "_escape_string";
+				//hack
+				if($func == "pgsql_escape_string") $func == "pg_escape_string";
+    			if($fieldname != $this->config["updatefield"]) $sql .= ", " . $fieldname . "='" . $func($value) . "'";
     		}
     	//if no data found	
     	} else {
