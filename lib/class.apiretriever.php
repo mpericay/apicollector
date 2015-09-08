@@ -100,10 +100,10 @@ class apiretriever {
 				//limit(23-07-2015): 15,000 transactions/month
             	$this->config["dbtable"] = "dwc";
             	//first query field is the one that mustn't be null for querying. The others are not checked
-            	$this->config["queryfield"] = array("municipality");
+            	$this->config["queryfield"] = array("country","locality","municipality","county","stateProvince");
             	$this->config["queryfieldencode"] = 1;
             	$this->config["updatefield"] = "mapquest_hits";
-            	$this->config["urlpattern"] = "http://www.mapquestapi.com/geocoding/v1/address?key=TsYEF8sucQyf24bDIS3RxwGzz8BbUisA&callback=renderOptions&inFormat=kvp&outFormat=json&location=[municipality]";
+            	$this->config["urlpattern"] = "http://www.mapquestapi.com/geocoding/v1/address?key=TsYEF8sucQyf24bDIS3RxwGzz8BbUisA&callback=renderOptions&inFormat=kvp&outFormat=json&location=[locality]%20[municipality]%20[county]%20[stateProvince]%20[country]";
 				//API key for localhost: Fmjtd%7Cluurnuutnl%2C8w%3Do5-9wr0ga
             break; 
 
@@ -456,11 +456,17 @@ class apiretriever {
     		foreach($gnidata as $field => $value) {
     			// put prefix
     			$fieldname = $this->profile . "_" . $field;
-    			//we already did updatefield
+    			
 				//mysql_escape_string vs pg_escape_string
-				$func = $this->config["dbtype"] . "_escape_string";
-				//hack
-				if($func == "pgsql_escape_string") $func == "pg_escape_string";
+				$func == "pg_escape_string";
+				switch($this->config["dbtype"]) {
+					case "mysql":
+						$func = "mysqli_escape_string";
+						break;
+					default:
+						break;
+				}
+				
     			if($fieldname != $this->config["updatefield"]) $sql .= ", " . $fieldname . "='" . $func($value) . "'";
     		}
     	//if no data found	
@@ -470,10 +476,10 @@ class apiretriever {
     	$sql .= " WHERE ";
     	for($i = 0; $i < count($this->config["queryfield"]); $i++) {
     		if(isset($where)) $where .= " AND "; 
-    		$where .= $this->config["queryfield"][$i] . "='" . $name[$this->config["queryfield"][$i]] . "'";
+    		$where .= $this->config["queryfield"][$i] . "='" . $func($name[$this->config["queryfield"][$i]]) . "'";
     	}
     	$sql .= $where;
-    	
+
     	$wentwell = $this->executeSQL($sql,false);
     	if($wentwell) {
    			if($gnidata) $this->found += 1;
