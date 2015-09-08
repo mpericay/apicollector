@@ -100,10 +100,11 @@ class apiretriever {
 				//limit(23-07-2015): 15,000 transactions/month
             	$this->config["dbtable"] = "dwc";
             	//first query field is the one that mustn't be null for querying. The others are not checked
-            	$this->config["queryfield"] = array("locality");
+            	$this->config["queryfield"] = array("municipality");
             	$this->config["queryfieldencode"] = 1;
             	$this->config["updatefield"] = "mapquest_hits";
-            	$this->config["urlpattern"] = "http://www.mapquestapi.com/geocoding/v1/address?key=Fmjtd%7Cluurnuutnl%2C8w%3Do5-9wr0ga&callback=renderOptions&inFormat=kvp&outFormat=json&location=[locality]";
+            	$this->config["urlpattern"] = "http://www.mapquestapi.com/geocoding/v1/address?key=TsYEF8sucQyf24bDIS3RxwGzz8BbUisA&callback=renderOptions&inFormat=kvp&outFormat=json&location=[municipality]";
+				//API key for localhost: Fmjtd%7Cluurnuutnl%2C8w%3Do5-9wr0ga
             break; 
 
             case "opencage":
@@ -377,8 +378,8 @@ class apiretriever {
     public function parseMapQuestJson($json) {
     	
     	$locations = $json->results[0]->locations[0];
-    	
-    	if($locations && ($locations->adminArea1 == "ES")) {
+
+    	if($locations) {
     		$values ['hits'] = 1;
     		$values ['lat'] = $locations->latLng->lat;
     		$values ['lon'] = $locations->latLng->lng;
