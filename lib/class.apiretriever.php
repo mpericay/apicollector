@@ -124,7 +124,7 @@ class apiretriever {
             	$this->config["queryfield"] = array("country","locality","municipality","county","stateProvince");
             	$this->config["queryfieldencode"] = 1;
             	$this->config["updatefield"] = "google_hits";
-            	$this->config["urlpattern"] = "http://maps.googleapis.com/maps/api/geocode/json?address=[locality]%20[municipality]%20[county]%20[stateProvince]%20[country]&sensor=false&region=es";
+            	$this->config["urlpattern"] = "http://maps.googleapis.com/maps/api/geocode/json?address=[locality]%20[municipality]%20[county]%20[stateProvince]%20[country]";
             break;
         	
         	case "gni":
@@ -271,7 +271,7 @@ class apiretriever {
         	$inserted = $this->insertResults($results, $names[$i]);
         } 
         
-        $this->drawResults($inserted);
+        $this->drawResults();
     }
     
     private function sleep($sleepParam) {
@@ -283,15 +283,16 @@ class apiretriever {
     private function getNames($limit, $onlynull) {
         //Build SQL
         $sql = "SELECT DISTINCT " . implode(",", $this->config["queryfield"]) . " FROM " . $this->config["dbtable"];
-        //only first element of the array musn't be null
+        //only first element of the array musn't be null or empty
         $sql .= " WHERE ". $this->config["queryfield"][0] . " IS NOT NULL";
+		$sql .= " AND ". $this->config["queryfield"][0] . " != ''";
         if($onlynull) $sql .= " AND ". $this->config["updatefield"] . " IS NULL";
-        if($limit) $sql .= " LIMIT ".$limit;     
-        
+        if($limit) $sql .= " LIMIT ".$limit;
+
         $names = $this->executeSQL($sql,true);
         
         if(!$names) die("No records match can be processed by ".$this->profile. ". Is ". $this->config["queryfield"][0] . " always empty? Is ". $this->config["updatefield"] . " always full?");
-        else $this->totalQueries = count($names); 
+        else $this->totalQueries = count($names);
         
         $this->logMsg("Queries to do: ".$this->totalQueries);
 
@@ -310,7 +311,7 @@ class apiretriever {
 	    	for($i = 0; $i < count($this->config["queryfield"]); $i++) {
 		    	$field = $this->config["queryfield"][$i];
 		    	//does it need to be encoded?
-		    	$value = $this->config["queryfieldencode"] ? urlencode($name[$field]) : $name[$field];
+		    	$value = $this->config["queryfieldencode"] ? urlencode(utf8_encode ($name[$field])) : $name[$field];
 		    	//search_term=exact:[scientific_name] becomes search_term=exact:Abida+secale
 		    	$search = str_replace("[".$field."]", $value, $search);
 	    	}
@@ -321,8 +322,8 @@ class apiretriever {
 	    	$search = str_replace(".xml", ".json", $search);
 
 	    	$content = file_get_contents($search);
-	    	
-	        //log errors or log everything (if DEBUG true)
+
+			//log errors or log everything (if DEBUG true)
 	    	if($content === false) {
 	        	$this->errors ++;
 	        	$this->error_string .= ";".$search;
@@ -363,7 +364,8 @@ class apiretriever {
     		$values ['lat'] = $first->lat;
     		$values ['lon'] = $first->lng;
     	} else {
-    		$values ['error'] = $json->status;
+    		$values['error'] = $json->status;
+    		$this->logMsg("Error returned by Google API: ".$json->status);
     	}
 
     	return $values;
@@ -449,24 +451,18 @@ class apiretriever {
     
     public function insertResults($gnidata, $name) {
 
+		//mysql_escape_string vs pg_escape_string
+		$func = $this->getEscapeFunction();
+		
     	$sql = "UPDATE " . $this->config["dbtable"] . " SET " . $this->config["updatefield"]. "=";
-    	if($gnidata) {
+
+    	if($gnidata && !$gnidata['error']) {
     		$sql .=  $gnidata['hits'];
     		//altres camps
     		foreach($gnidata as $field => $value) {
     			// put prefix
     			$fieldname = $this->profile . "_" . $field;
     			
-				//mysql_escape_string vs pg_escape_string
-				$func == "pg_escape_string";
-				switch($this->config["dbtype"]) {
-					case "mysql":
-						$func = "mysqli_escape_string";
-						break;
-					default:
-						break;
-				}
-				
     			if($fieldname != $this->config["updatefield"]) $sql .= ", " . $fieldname . "='" . $func($value) . "'";
     		}
     	//if no data found	
@@ -490,11 +486,26 @@ class apiretriever {
    			$this->logMsg("Error updating!!! ".$sql);
    		}
     	
-    	return $result;
+    	return $gnidata;
     
     }
+
+	public function getEscapeFunction() {
+
+		$func == "pg_escape_string";
+		switch($this->config["dbtype"]) {
+			case "mysql":
+				$func = "mysql_escape_string";
+				break;
+			default:
+				break;
+		}
+
+		return $func;	
+	}
     
     public function drawResults() {
+
     	$this->logMsg("ENDED: ".$this->found . " of ". $this->totalQueries . " found.");
     	$this->logMsg("-----------------------------------------------------------------");
     	print_r($this->totalQueries . " records were queried<br>");
