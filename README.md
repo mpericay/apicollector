@@ -3,7 +3,7 @@ apicollector
 
 Apicollector launches calls to APIs from a field in a database and stores values. Works virtually for any DB, but has been tested in PostgreSQL and MySQL.
 
-Syntax: http://apicollector.bioexplora.cat/index.php?PROFILE=google&LIMIT=5&SLEEP=100&DEBUG=true
+Syntax: http://{baseUrl}/index.php?PROFILE=google&LIMIT=5&SLEEP=100&DEBUG=true
 
 Params:
 * PROFILE: looks for a plugin file in lib/conf and loads the params (required)
