@@ -20,7 +20,8 @@ class apiretriever {
     private $notfound = 0;
     private $errorsDB = 0;    
     private $errors = 0;
-    private $error_string = "";
+	private $empty_queries = Array();
+    private $error_strings = Array();
 
     /**
      * Street search object constructor
@@ -270,7 +271,7 @@ class apiretriever {
 			//log errors or log everything (if DEBUG true)
 	    	if($content === false) {
 	        	$this->errors ++;
-	        	$this->error_string .= ";".$search;
+	        	$this->empty_queries[] = $search;
 	        	$this->logMsg("Empty query!!! ".$search);
 	        } else {
 	        	//hack! this is not a json!
@@ -393,17 +394,17 @@ class apiretriever {
     	else return false; 
     }
     
-    public function insertResults($gnidata, $name) {
+    public function insertResults($data, $name) {
 
 		//mysql_escape_string vs pg_escape_string
 		$func = $this->getEscapeFunction();
 		
     	$sql = "UPDATE " . $this->config["dbtable"] . " SET " . $this->config["updatefield"]. "=";
 
-    	if($gnidata && !$gnidata['error']) {
-    		$sql .=  $gnidata['hits'];
+    	if($data && !$data['error']) {
+    		$sql .=  $data['hits'];
     		//altres camps
-    		foreach($gnidata as $field => $value) {
+    		foreach($data as $field => $value) {
     			// put prefix
     			$fieldname = $this->profile . "_" . $field;
     			
@@ -422,15 +423,16 @@ class apiretriever {
 
     	$wentwell = $this->executeSQL($sql,false);
     	if($wentwell) {
-   			if($gnidata) $this->found += 1;
+   			if($data) $this->found += 1;
    			else $this->notfound += 1;
    			$this->logMsg("DB query: ".$sql);
    		} else {
    			$this->errorsDB += 1;
+			$this->error_strings[] = $sql;
    			$this->logMsg("Error updating!!! ".$sql);
    		}
     	
-    	return $gnidata;
+    	return $data;
     
     }
 
@@ -455,9 +457,11 @@ class apiretriever {
     	print_r($this->totalQueries . " records were queried<br>");
     	print_r($this->found . " records were found and inserted in DB<br>");
     	print_r($this->notfound . " records were not found<br>");
-    	print_r($this->errorsDB . " gave an error when inserting to DB<br>");
-    	print_r($this->errors . " returned an empty string or timed out:");
-    	print_r(str_replace(";", "<br>", $this->error_string));
+    	print_r($this->errorsDB . " gave an error when inserting to DB:");
+		foreach($this->error_strings as $error) print_r("<br>".$error);
+    	print_r("<br>".$this->errors . " returned an empty string or timed out:");
+    	foreach($this->empty_queries as $error2) print_r("<br>".$error2);
+		
     }    
 
     private function xget_file_contents($file) {
