@@ -183,7 +183,9 @@ class apiretriever {
         $limitParam = $this->getParameter("LIMIT");
         $limit = $limitParam ? $limitParam : 1;
         
-        $names = $this->getNames($limit, true);
+        $nullParam = $this->getParameter("ONLYNULL");
+		$onlynull = $nullParam ? $nullParam : true;
+        $names = $this->getNames($limit, $onlynull);
         
         for($i=0; $i<count($names); $i++) {
         	
