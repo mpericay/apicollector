@@ -76,67 +76,11 @@ class apiretriever {
         $this->config["dbuser"] = _DB_USER;
         $this->config["dbpass"] = _DB_PWD;
         $this->config["dbport"] = _DB_PORT;
-            	
-        switch($this->profile) {
-
-        	case "gni_detail":
-            	$this->config["dbtable"] = "api_gni";
-            	$this->config["queryfield"] = array("gni_resource_uri");
-            	$this->config["queryfieldencode"] = 0;
-            	$this->config["updatefield"] = "gni_detail_hits";
-            	$this->config["urlpattern"] = "[gni_resource_uri]";
-            break;
-        	
-        	case "gbif":
-            	$this->config["dbtable"] = "api_gbif";
-            	//first query field is the one that mustn't be null for querying. The others are not checked
-            	$this->config["queryfield"] = array("genus", "classe_id", "ordre_id", "familia_id");
-            	$this->config["queryfieldencode"] = 1;
-            	$this->config["updatefield"] = "gbif_hits";
-            	$this->config["urlpattern"] = "http://api.gbif.org/v0.9/species/match?class=[classe_id]&order=[ordre_id]&family=[familia_id]&name=[genus]&rank=GENUS";
-            break;
-            
-        	case "mapquest":
-				//limit(23-07-2015): 15,000 transactions/month
-            	$this->config["dbtable"] = "dwc";
-            	//first query field is the one that mustn't be null for querying. The others are not checked
-            	$this->config["queryfield"] = array("country","locality","municipality","county","stateProvince");
-            	$this->config["queryfieldencode"] = 1;
-            	$this->config["updatefield"] = "mapquest_hits";
-            	$this->config["urlpattern"] = "http://www.mapquestapi.com/geocoding/v1/address?key=TsYEF8sucQyf24bDIS3RxwGzz8BbUisA&callback=renderOptions&inFormat=kvp&outFormat=json&location=[locality]%20[municipality]%20[county]%20[stateProvince]%20[country]";
-				//API key for localhost: Fmjtd%7Cluurnuutnl%2C8w%3Do5-9wr0ga
-            break; 
-
-            case "opencage":
-				//limit(23-07-2015):  2,500 queries per day
-            	$this->config["dbtable"] = "dwc";
-            	//first query field is the one that mustn't be null for querying. The others are not checked
-            	$this->config["queryfield"] = array("country", "locality","municipality","county","stateProvince");
-            	$this->config["queryfieldencode"] = 1;
-            	$this->config["updatefield"] = "opencage_hits";
-            	$this->config["urlpattern"] = "http://api.opencagedata.com/geocode/v1/json?query=[direccio]";
-            break;
-            
-            case "google":
-				//limit(23-07-2015): 2,500 requests per 24 hour period. 5 requests per second
-            	$this->config["dbtable"] = "dwc";
-            	//first query field is the one that mustn't be null for querying. The others are not checked
-            	$this->config["queryfield"] = array("country","locality","municipality","county","stateProvince");
-            	$this->config["queryfieldencode"] = 1;
-            	$this->config["updatefield"] = "google_hits";
-            	$this->config["urlpattern"] = "http://maps.googleapis.com/maps/api/geocode/json?address=[locality]%20[municipality]%20[county]%20[stateProvince]%20[country]";
-            break;
-        	
-        	case "gni":
-        	default:
-            	$this->config["dbtable"] = "api_gni";
-            	$this->config["queryfield"] = array("scientific_name");
-            	$this->config["queryfieldencode"] = 1;
-            	$this->config["updatefield"] = "gni_hits";
-            	$this->config["urlpattern"] = "http://gni.globalnames.org/name_strings.json?search_term=exact:[scientific_name]";
-            break;
-
-        }
+		
+		$filename = "lib/conf/plugin.".$this->profile.".php";
+		
+		if(file_exists($filename)) require_once($filename);
+		else die("Plugin ".$this->profile." does not exist");
 
         return true;
     }
@@ -291,7 +235,7 @@ class apiretriever {
 
         $names = $this->executeSQL($sql,true);
         
-        if(!$names) die("No records match can be processed by ".$this->profile. ". Is ". $this->config["queryfield"][0] . " always empty? Is ". $this->config["updatefield"] . " always full?");
+        if(!$names) die("No records match can be processed by ".$this->profile. ". Does the field '". $this->config["queryfield"][0] . "' exist or is always empty? Does the field '". $this->config["updatefield"] . "' exist or is always full?");
         else $this->totalQueries = count($names);
         
         $this->logMsg("Queries to do: ".$this->totalQueries);
