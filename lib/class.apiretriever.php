@@ -221,8 +221,8 @@ class apiretriever {
     
     private function sleep($sleepParam) {
     	// Default sleep is 1 second
-        $sleep = ($sleepParam !== false) ? (int) $sleepParam : 1000;
-    	sleep($sleep/1000);
+        $sleep = ($sleepParam !== false) ? (int) $sleepParam/1000 : 1;
+    	sleep($sleep);
     } 
 
     private function getNames($limit, $onlynull) {
