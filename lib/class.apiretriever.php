@@ -307,9 +307,16 @@ class apiretriever {
     	if($json->status == "OK") {
     		$values ['hits'] = 1;
     		$results = $json -> results;
-    		$first = $results[0]->geometry->location;
-    		$values ['lat'] = $first->lat;
-    		$values ['lon'] = $first->lng;
+    		$first = $results[0]->geometry;
+    		$values ['lat'] = $first->location->lat;
+    		$values ['lon'] = $first->location->lng;
+			if($first->bounds) {
+				$values ['ne_lat'] = $first->bounds->northeast->lat;
+				$values ['ne_lon'] = $first->bounds->northeast->lng;
+				$values ['sw_lat'] = $first->bounds->southwest->lat;
+				$values ['sw_lon'] = $first->bounds->southwest->lng;
+			}
+			if($first->location_type) $values ['location_type'] = $first->location_type;
     	} else {
     		$values['error'] = $json->status;
     		$this->logMsg("Error returned by Google API: ".$json->status);
@@ -418,8 +425,11 @@ class apiretriever {
     	}
     	$sql .= " WHERE ";
     	for($i = 0; $i < count($this->config["queryfield"]); $i++) {
-    		if(isset($where)) $where .= " AND "; 
-    		$where .= $this->config["queryfield"][$i] . "='" . $func($name[$this->config["queryfield"][$i]]) . "'";
+    		$qfvalue = $name[$this->config["queryfield"][$i]];
+    		if($qfvalue) {	
+	    		if(isset($where)) $where .= " AND "; 
+	    		$where .= $this->config["queryfield"][$i] . "='" . $func($qfvalue) . "'"; 
+			}
     	}
     	$sql .= $where;
 
