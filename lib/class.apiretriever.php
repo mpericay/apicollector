@@ -324,11 +324,27 @@ class apiretriever {
 
     	return $values;
     }
-    
+	   
     public function parseOpenCageJson($json) {
-    	
-    	//TODO
-    	//return $values;
+    	if($json->status->code == 200) {
+    		$values ['hits'] = 1;
+    		$results = $json -> results;
+    		$first = $results[0];
+    		$values ['lat'] = $first->geometry->lat;
+    		$values ['lon'] = $first->geometry->lng;
+			if($first->bounds) {
+				$values ['ne_lat'] = $first->bounds->northeast->lat;
+				$values ['ne_lon'] = $first->bounds->northeast->lng;
+				$values ['sw_lat'] = $first->bounds->southwest->lat;
+				$values ['sw_lon'] = $first->bounds->southwest->lng;
+			}
+			if($first->confidence) $values['confidence'] = $first->confidence;
+    	} else {
+    		$values['error'] = $json->status->message;
+    		$this->logMsg("Error returned by Opencage API: ".$values['error']);
+    	}
+
+    	return $values;
     } 
     
     public function parseMapQuestJson($json) {
