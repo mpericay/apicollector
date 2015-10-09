@@ -24,22 +24,23 @@
 /**
 * Database name
 */
-	define("_DB_NAME","dbname");
+	define("_DB_NAME","apicollector");
 
 /**
 * Database user
 */
-	define("_DB_USER","user");
+	define("_DB_USER","apicollector");
 
 /**
 * Database password
 */
-	define("_DB_PWD","password");
+	define("_DB_PWD","aaa");
 
 /**
 * Complete path to application root
 */
-	define("_APICOLLECTOR_APP_ROOT","/srv/www/apps/whatever/");
+	define("_APICOLLECTOR_APP_ROOT","D:/autonom/MCNB/apicollector/www/");
+	//define("_APICOLLECTOR_APP_ROOT","/var/www/develtaxomap.bioexplora.cat/datos/web/apicollector/");
 
 /**
 * Directory for CSV temp files
@@ -59,7 +60,7 @@
 /**
 * Complete path to error log file
 */
-	define("_APICOLLECTOR_LOG_FILE",_APICOLLECTOR_APP_ROOT."logs/error.log");
+	define("_APICOLLECTOR_LOG_FILE",_APICOLLECTOR_APP_ROOT."logs/apicollector.log");
 
 
 ?>
