@@ -116,7 +116,6 @@ class logger {
 			fclose($fileopen);
 			return true;
 		}
-		//else die("Debug is not possible: we cannot write to logfile: ".$file);
 		return false;
 	}	
 }

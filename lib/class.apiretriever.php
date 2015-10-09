@@ -471,7 +471,7 @@ class apiretriever {
 	public function checkFieldsExist($fields) {
 		
 		for($i = 0; $i < count($fields); $i++) {
-    		$sql = "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '".$this->config["dbname"]."' AND TABLE_NAME = '".$this->config["dbtable"]."' AND COLUMN_NAME = '".$fields[$i]."'";
+    		$sql = "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '"._DB_NAME."' AND TABLE_NAME = '".$this->config["dbtable"]."' AND COLUMN_NAME = '".$fields[$i]."'";
     		$field_exists = $this->executeSQL($sql,true);
 			
     		if(!$field_exists) {
