@@ -488,7 +488,7 @@ class apiretriever {
 	}
 	
 	public function createField($field) {
-    	$sql = "ALTER TABLE ".$this->config["dbtable"]." AsDD ".$field." varchar(255)";
+    	$sql = "ALTER TABLE ".$this->config["dbtable"]." ADD ".$field." varchar(255)";
     	return $this->executeSQL($sql,false);
 	}
 
