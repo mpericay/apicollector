@@ -292,7 +292,7 @@ class apiretriever {
     public function parseGniJson($json) {
     	
     	if($json->name_strings_total) {
-    		$values ['gni_hits'] = $json -> name_strings_total;
+    		$values [$this->config["updatefield"]] = $json -> name_strings_total;
     		$results = $json -> name_strings;
     		$values ['gni_resource_uri'] = $results[0]->resource_uri;
     		//$values ['id'] = false; 
@@ -306,7 +306,7 @@ class apiretriever {
 	public function parseGoogleJson($json) {
 
     	if($json->status == "OK") {
-    		$values ['google_hits'] = 1;
+    		$values [$this->config["updatefield"]] = 1;
     		$results = $json -> results;
     		$first = $results[0]->geometry;
     		$values ['google_lat'] = $first->location->lat;
@@ -328,7 +328,7 @@ class apiretriever {
 	   
     public function parseOpenCageJson($json) {
     	if($json->status->code == 200) {
-    		$values ['opencage_hits'] = 1;
+    		$values [$this->config["updatefield"]] = 1;
     		$results = $json -> results;
     		$first = $results[0];
     		$values ['opencage_lat'] = $first->geometry->lat;
@@ -353,7 +353,7 @@ class apiretriever {
     	$locations = $json->results[0]->locations[0];
 
     	if($locations) {
-    		$values ['mapquest_hits'] = 1;
+    		$values [$this->config["updatefield"]] = 1;
     		$values ['mapquest_lat'] = $locations->latLng->lat;
     		$values ['mapquest_lon'] = $locations->latLng->lng;
     		
@@ -368,7 +368,7 @@ class apiretriever {
     public function parseGbifNubJson($json) {
     	
     	if($json->matchType != "NONE") {
-	    	$values ['gbif_hits'] = 1;
+	    	$values [$this->config["updatefield"]] = 1;
 	    	$values ['gbif_scientific_name'] = $json->scientificName;
 	   		$values ['gbif_rank'] = $json->rank; 
 	   		$values ['gbif_synonym'] = $json->synonym;
@@ -381,7 +381,7 @@ class apiretriever {
 	   		$values ['gbif_genus'] = $json->genus;
 	   		if($json->matchType != "EXACT") $values ['gbif_note'] = $json->note;
     	} else {
-    		$values ['gbif_hits'] = 0;
+    		$values [$this->config["updatefield"]] = 0;
     	}
     	$values ['gbif_match_type'] = $json->matchType;    	
 
@@ -398,7 +398,7 @@ class apiretriever {
     			if($this->isPreferredDataSource($title)) {
     				$fieldname = str_replace(" ", "_", strtolower ($title));
     				$values ["gni_detail_".$fieldname] = $record->records[0]->local_id;
-    				$values['gni_detail_hits'] = 1;//$record->records_number;
+    				$values[$this->config["updatefield"]] = 1;//$record->records_number;
     				$somethingfound = 1;
     			}
     		}
