@@ -22,6 +22,7 @@ class apiretriever {
     private $errors = 0;
 	private $empty_queries = Array();
     private $error_strings = Array();
+	private $fields_checked = false;
 
     /**
      * Street search object constructor
@@ -291,9 +292,9 @@ class apiretriever {
     public function parseGniJson($json) {
     	
     	if($json->name_strings_total) {
-    		$values ['hits'] = $json -> name_strings_total;
+    		$values ['gni_hits'] = $json -> name_strings_total;
     		$results = $json -> name_strings;
-    		$values ['resource_uri'] = $results[0]->resource_uri;
+    		$values ['gni_resource_uri'] = $results[0]->resource_uri;
     		//$values ['id'] = false; 
     	} else {
     		$values = 0;
@@ -305,18 +306,18 @@ class apiretriever {
 	public function parseGoogleJson($json) {
 
     	if($json->status == "OK") {
-    		$values ['hits'] = 1;
+    		$values ['google_hits'] = 1;
     		$results = $json -> results;
     		$first = $results[0]->geometry;
-    		$values ['lat'] = $first->location->lat;
-    		$values ['lon'] = $first->location->lng;
+    		$values ['google_lat'] = $first->location->lat;
+    		$values ['google_lon'] = $first->location->lng;
 			if($first->bounds) {
-				$values ['ne_lat'] = $first->bounds->northeast->lat;
-				$values ['ne_lon'] = $first->bounds->northeast->lng;
-				$values ['sw_lat'] = $first->bounds->southwest->lat;
-				$values ['sw_lon'] = $first->bounds->southwest->lng;
+				$values ['google_ne_lat'] = $first->bounds->northeast->lat;
+				$values ['google_ne_lon'] = $first->bounds->northeast->lng;
+				$values ['google_sw_lat'] = $first->bounds->southwest->lat;
+				$values ['google_sw_lon'] = $first->bounds->southwest->lng;
 			}
-			if($first->location_type) $values ['location_type'] = $first->location_type;
+			if($first->location_type) $values ['google_location_type'] = $first->location_type;
     	} else {
     		$values['error'] = $json->status;
     		$this->logMsg("Error returned by Google API: ".$json->status);
@@ -327,18 +328,18 @@ class apiretriever {
 	   
     public function parseOpenCageJson($json) {
     	if($json->status->code == 200) {
-    		$values ['hits'] = 1;
+    		$values ['opencage_hits'] = 1;
     		$results = $json -> results;
     		$first = $results[0];
-    		$values ['lat'] = $first->geometry->lat;
-    		$values ['lon'] = $first->geometry->lng;
+    		$values ['opencage_lat'] = $first->geometry->lat;
+    		$values ['opencage_lon'] = $first->geometry->lng;
 			if($first->bounds) {
-				$values ['ne_lat'] = $first->bounds->northeast->lat;
-				$values ['ne_lon'] = $first->bounds->northeast->lng;
-				$values ['sw_lat'] = $first->bounds->southwest->lat;
-				$values ['sw_lon'] = $first->bounds->southwest->lng;
+				$values ['opencage_ne_lat'] = $first->bounds->northeast->lat;
+				$values ['opencage_ne_lon'] = $first->bounds->northeast->lng;
+				$values ['opencage_sw_lat'] = $first->bounds->southwest->lat;
+				$values ['opencage_sw_lon'] = $first->bounds->southwest->lng;
 			}
-			if($first->confidence) $values['confidence'] = $first->confidence;
+			if($first->confidence) $values['opencage_confidence'] = $first->confidence;
     	} else {
     		$values['error'] = $json->status->message;
     		$this->logMsg("Error returned by Opencage API: ".$values['error']);
@@ -352,9 +353,9 @@ class apiretriever {
     	$locations = $json->results[0]->locations[0];
 
     	if($locations) {
-    		$values ['hits'] = 1;
-    		$values ['lat'] = $locations->latLng->lat;
-    		$values ['lon'] = $locations->latLng->lng;
+    		$values ['mapquest_hits'] = 1;
+    		$values ['mapquest_lat'] = $locations->latLng->lat;
+    		$values ['mapquest_lon'] = $locations->latLng->lng;
     		
     		//$values ['id'] = false; 
     	} else {
@@ -367,22 +368,22 @@ class apiretriever {
     public function parseGbifNubJson($json) {
     	
     	if($json->matchType != "NONE") {
-	    	$values ['hits'] = 1;
-	    	$values ['scientific_name'] = $json->scientificName;
-	   		$values ['rank'] = $json->rank; 
-	   		$values ['synonym'] = $json->synonym;
-	   		$values ['confidence'] = $json->confidence;
-	   		$values ['kingdom'] = $json->kingdom;
-    		$values ['phylum'] = $json->phylum;
-	    	$values ['clazz'] = $json->clazz;
-	    	$values ['order'] = $json->order;
-	   		$values ['family'] = $json->family;
-	   		$values ['genus'] = $json->genus;
-	   		if($json->matchType != "EXACT") $values ['note'] = $json->note;
+	    	$values ['gbif_hits'] = 1;
+	    	$values ['gbif_scientific_name'] = $json->scientificName;
+	   		$values ['gbif_rank'] = $json->rank; 
+	   		$values ['gbif_synonym'] = $json->synonym;
+	   		$values ['gbif_confidence'] = $json->confidence;
+	   		$values ['gbif_kingdom'] = $json->kingdom;
+    		$values ['gbif_phylum'] = $json->phylum;
+	    	$values ['gbif_clazz'] = $json->clazz;
+	    	$values ['gbif_order'] = $json->order;
+	   		$values ['gbif_family'] = $json->family;
+	   		$values ['gbif_genus'] = $json->genus;
+	   		if($json->matchType != "EXACT") $values ['gbif_note'] = $json->note;
     	} else {
-    		$values ['hits'] = 0;
+    		$values ['gbif_hits'] = 0;
     	}
-    	$values ['match_type'] = $json->matchType;    	
+    	$values ['gbif_match_type'] = $json->matchType;    	
 
     	return $values;
     }    
@@ -396,8 +397,8 @@ class apiretriever {
     			$title = $record->data_source->title;
     			if($this->isPreferredDataSource($title)) {
     				$fieldname = str_replace(" ", "_", strtolower ($title));
-    				$values [$fieldname] = $record->records[0]->local_id;
-    				$values['hits'] = 1;//$record->records_number;
+    				$values ["gni_detail_".$fieldname] = $record->records[0]->local_id;
+    				$values['gni_detail_hits'] = 1;//$record->records_number;
     				$somethingfound = 1;
     			}
     		}
@@ -424,15 +425,18 @@ class apiretriever {
 		//mysql_escape_string vs pg_escape_string
 		$func = $this->getEscapeFunction();
 		
+    	//updatefield is numeric and must be set
     	$sql = "UPDATE " . $this->config["dbtable"] . " SET " . $this->config["updatefield"]. "=";
 
     	if($data && !$data['error']) {
-    		$sql .=  $data['hits'];
+    		$sql .=  $data[$this->config["updatefield"]];
     		//altres camps
-    		foreach($data as $field => $value) {
-    			// put prefix
-    			$fieldname = $this->profile . "_" . $field;
-    			
+    		if(!$this->fields_checked) {
+    			$this->fields_checked = $this->checkFieldsExist(array_keys($data));
+				if(!$this->fields_checked) die("Mandatory fields cannot be created!!!!");
+			}
+					
+    		foreach($data as $fieldname => $value) {
     			if($fieldname != $this->config["updatefield"]) $sql .= ", " . $fieldname . "='" . $func($value) . "'";
     		}
     	//if no data found	
@@ -463,6 +467,30 @@ class apiretriever {
     	return $data;
     
     }
+
+	public function checkFieldsExist($fields) {
+		
+		for($i = 0; $i < count($fields); $i++) {
+    		$sql = "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '"._DB_NAME."' AND TABLE_NAME = '".$this->config["dbtable"]."' AND COLUMN_NAME = '".$fields[$i]."'";
+    		$field_exists = $this->executeSQL($sql,true);
+			
+    		if(!$field_exists) {
+    			$created = $this->createField($fields[$i]);
+				if(!$created) {
+					$this->logError("Field ".$fields[$i]." could not be created");
+					return false;
+				}
+				$this->logMsg("Field ".$fields[$i]." created correctly");
+			}
+    	}
+		
+		return true;
+	}
+	
+	public function createField($field) {
+    	$sql = "ALTER TABLE ".$this->config["dbtable"]." AsDD ".$field." varchar(255)";
+    	return $this->executeSQL($sql,false);
+	}
 
 	public function getEscapeFunction() {
 
