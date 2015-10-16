@@ -10,7 +10,7 @@ Params:
 * LIMIT: the maximum number of queries to do (default is no limit ... until table ends)
 * SLEEP: milliseconds to wait between queries (default is 1000ms = 1sec)
 * DEBUG: if "true", writes more stuff in log file
-* ONLYNULL: if "true" (default), queries only the registries where the "updatefield" is null
+* ONLYNULL: if "true" (default), queries only the registries where the "updatefield" is null. If false, starts from the beginning
 
 Plugins conf file:
 * dbtable: which table to be used
@@ -21,4 +21,4 @@ Plugins conf file:
 
 It is important to note that two fields are required in the table before running the query:
 * updatefield set in profile conf plugin. Must be an integer, and its initial value must be null to point that the record hasn't been queried.  
-* queryfield set in profile conf plugin. Must be an array, the first element musn't be null.	
+* queryfield set in profile conf plugin. Must be an array, the first element must exist and musn't be null.	

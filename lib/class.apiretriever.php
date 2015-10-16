@@ -229,6 +229,13 @@ class apiretriever {
     } 
 
     private function getNames($limit, $onlynull) {
+    		
+    	// the mandatory fields are the first element of the queryfield array, and the updatefield (usually "provider_hits")	
+    	$requiredFields = array($this->config["queryfield"][0], $this->config["updatefield"]);	
+    	$exists = $this->checkFieldsExist($requiredFields);
+    	
+		if(!$exists) die("The mandatory fields ". implode(" or ", $requiredFields) . " don't exist in the table ".$this->config["dbtable"]);
+    	
         //Build SQL
         $sql = "SELECT DISTINCT " . implode(",", $this->config["queryfield"]) . " FROM " . $this->config["dbtable"];
         //only first element of the array musn't be null or empty
@@ -239,7 +246,7 @@ class apiretriever {
 
         $names = $this->executeSQL($sql,true);
         
-        if(!$names) die("No records match can be processed by ".$this->profile. ". Does the field '". $this->config["queryfield"][0] . "' exist or is always empty? Does the field '". $this->config["updatefield"] . "' exist or is always full?");
+        if(!$names) die("No records match can be processed by ".$this->profile. ". Is the field '". $this->config["queryfield"][0] . "' always empty? Is the field '". $this->config["updatefield"] . "' always full (no null values)?");
         else $this->totalQueries = count($names);
         
         $this->logMsg("Queries to do: ".$this->totalQueries);
@@ -432,7 +439,7 @@ class apiretriever {
     		$sql .=  $data[$this->config["updatefield"]];
     		//altres camps
     		if(!$this->fields_checked) {
-    			$this->fields_checked = $this->checkFieldsExist(array_keys($data));
+    			$this->fields_checked = $this->checkFieldsExist(array_keys($data), true); //create the fields if they don't exist
 				if(!$this->fields_checked) die("Mandatory fields cannot be created!!!!");
 			}
 					
@@ -468,23 +475,29 @@ class apiretriever {
     
     }
 
-	public function checkFieldsExist($fields) {
+	public function checkFieldsExist($fields, $create = false) {
+			
+		$allFieldsExist = true;
 		
 		for($i = 0; $i < count($fields); $i++) {
     		$sql = "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '"._DB_NAME."' AND TABLE_NAME = '".$this->config["dbtable"]."' AND COLUMN_NAME = '".$fields[$i]."'";
     		$field_exists = $this->executeSQL($sql,true);
 			
     		if(!$field_exists) {
-    			$created = $this->createField($fields[$i]);
-				if(!$created) {
-					$this->logError("Field ".$fields[$i]." could not be created");
-					return false;
+    			if($create) {
+	    			$created = $this->createField($fields[$i]);
+					if(!$created) {
+						$this->logError("Field ".$fields[$i]." could not be created");
+						$allFieldsExist = false;
+					}
+					$this->logMsg("Field ".$fields[$i]." created correctly");
+				} else {
+					$allFieldsExist = false;
 				}
-				$this->logMsg("Field ".$fields[$i]." created correctly");
 			}
     	}
 		
-		return true;
+		return $allFieldsExist;
 	}
 	
 	public function createField($field) {
