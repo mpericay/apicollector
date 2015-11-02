@@ -323,6 +323,7 @@ class apiretriever {
 				$values ['google_ne_lon'] = $first->bounds->northeast->lng;
 				$values ['google_sw_lat'] = $first->bounds->southwest->lat;
 				$values ['google_sw_lon'] = $first->bounds->southwest->lng;
+				$values ['google_radius_km'] = $this->getDistanceBetweenPoints($first->bounds->northeast->lat, $first->bounds->northeast->lng, $first->location->lat, $first->location->lng, "Km");
 			}
 			if($first->location_type) $values ['google_location_type'] = $first->location_type;
     	} else {
@@ -345,6 +346,7 @@ class apiretriever {
 				$values ['opencage_ne_lon'] = $first->bounds->northeast->lng;
 				$values ['opencage_sw_lat'] = $first->bounds->southwest->lat;
 				$values ['opencage_sw_lon'] = $first->bounds->southwest->lng;
+				$values ['opencage_radius_km'] = $this->getDistanceBetweenPoints($first->bounds->northeast->lat, $first->bounds->northeast->lng, $first->geometry->lat, $first->geometry->lng, "Km");
 			}
 			if($first->confidence) $values['opencage_confidence'] = $first->confidence;
     	} else {
@@ -518,6 +520,17 @@ class apiretriever {
 
 		return $func;	
 	}
+	
+	public function getDistanceBetweenPoints($latitude1, $longitude1, $latitude2, $longitude2, $unit = 'Mi') {
+	     $theta = $longitude1 - $longitude2;
+	     $distance = (sin(deg2rad($latitude1)) * sin(deg2rad($latitude2))) + (cos(deg2rad($latitude1)) * cos(deg2rad($latitude2)) * cos(deg2rad($theta)));
+	     $distance = acos($distance);
+	     $distance = rad2deg($distance);
+	     $distance = $distance * 60 * 1.1515; switch($unit) {
+	          case 'Mi': break; case 'Km' : $distance = $distance * 1.609344;
+	     }
+	     return (round($distance,2));
+	}	
     
     public function drawResults() {
 
