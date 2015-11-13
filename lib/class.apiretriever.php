@@ -339,8 +339,8 @@ class apiretriever {
     		$values [$this->config["updatefield"]] = 1;
     		$results = $json -> results;
     		$first = $results[0];
-    		$values ['opencage_lat'] = $first->geometry->lat;
-    		$values ['opencage_lon'] = $first->geometry->lng;
+    		if($first->geometry->lat) $values ['opencage_lat'] = $first->geometry->lat;
+    		if($first->geometry->lng) $values ['opencage_lon'] = $first->geometry->lng;
 			if($first->bounds) {
 				$values ['opencage_ne_lat'] = $first->bounds->northeast->lat;
 				$values ['opencage_ne_lon'] = $first->bounds->northeast->lng;
@@ -455,10 +455,9 @@ class apiretriever {
     	$sql .= " WHERE ";
     	for($i = 0; $i < count($this->config["queryfield"]); $i++) {
     		$qfvalue = $name[$this->config["queryfield"][$i]];
-    		if($qfvalue) {	
-	    		if(isset($where)) $where .= " AND "; 
-	    		$where .= $this->config["queryfield"][$i] . "='" . $func($qfvalue) . "'"; 
-			}
+
+    		if(isset($where)) $where .= " AND "; 
+    		$where .= $this->config["queryfield"][$i] . "='" . $func($qfvalue) . "'"; 
     	}
     	$sql .= $where;
 
