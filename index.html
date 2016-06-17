@@ -26,46 +26,65 @@
   <div class="container" id="loginPage">
 	<h2 class="form-signin-heading" style="text-align: center;">API Collector</h2>
 
-    <form role="form">
+    <form role="form" id="form">
       <div class="form-group">
         <label for="profile">Profile</label>
-        <select class="form-control" id="profile">
+        <select class="form-control" id="profile" name="profile">
           <option>gni</option>
           <option>google</option>
           <option>mapquest</option>
-          <option>opencage</option>
+          <option selected>opencage</option>
         </select>
       </div>
       <div class="form-group">
         <label for="limit">Limit</label>
-        <input type="text" class="form-control" id="limit" value="10">
+        <input type="text" class="form-control" id="limit" name="limit" value="5">
       </div>
       <div class="form-group">
         <label for="sleep">Sleep</label>
-        <input type="text" class="form-control" id="sleep" value="1000">
+        <input type="text" class="form-control" id="sleep" name="sleep" value="1000">
       </div>
       <div class="form-group">
         <label for="debug">Debug</label>
-        <select class="form-control" id="debug">
+        <select class="form-control" id="debug" name="debug">
           <option>true</option>
           <option selected>false</option>
         </select>
       </div>
       <div class="form-group">
         <label for="onlynull">Onlynull</label>
-        <select class="form-control" id="onlynull">
+        <select class="form-control" id="onlynull" name="onlynull">
           <option>true</option>
           <option>false</option>
         </select>
       </div>
       <button type="submit" class="btn btn-default" id="submit">Submit</button>
     </form>
+    <div id="result"></div>
   </div>
 
 <script type="text/javascript">
-  $("#submit").on("click", function() {
-    alert($("#profile").val());
-  });
+  
+  var loading = "loading ...";
+  var drawResult = function(html) {
+    $("#result").html(html);
+  };
+  
+  $("#form").submit( function() {
+
+        $.ajax({
+            url     : "api.php",
+            type    : "GET",
+            data    : $(this).serialize(),
+            success : function( response ) {
+              drawResult(response);
+            }
+        });
+        
+        drawResult(loading);
+
+        return false;
+    });
 </script>
 
 </body>
