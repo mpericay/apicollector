@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>API Collector</title>
+
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+
+    <!-- jQuery library -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
+    
+    <!-- Latest compiled JavaScript -->
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>  
+
+</head>
+
+<body>
+  <div class="container" id="loginPage">
+	<h2 class="form-signin-heading" style="text-align: center;">API Collector</h2>
+
+    <form role="form">
+      <div class="form-group">
+        <label for="profile">Profile</label>
+        <select class="form-control" id="profile">
+          <option>gni</option>
+          <option>google</option>
+          <option>mapquest</option>
+          <option>opencage</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="limit">Limit</label>
+        <input type="text" class="form-control" id="limit" value="10">
+      </div>
+      <div class="form-group">
+        <label for="sleep">Sleep</label>
+        <input type="text" class="form-control" id="sleep" value="1000">
+      </div>
+      <div class="form-group">
+        <label for="debug">Debug</label>
+        <select class="form-control" id="debug">
+          <option>true</option>
+          <option selected>false</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="onlynull">Onlynull</label>
+        <select class="form-control" id="onlynull">
+          <option>true</option>
+          <option>false</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-default" id="submit">Submit</button>
+    </form>
+  </div>
+
+<script type="text/javascript">
+  $("#submit").on("click", function() {
+    alert($("#profile").val());
+  });
+</script>
+
+</body>
+
+</html>
