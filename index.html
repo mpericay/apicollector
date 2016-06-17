@@ -24,25 +24,27 @@
 
 <body>
   <div class="container" id="loginPage">
-	<h2 class="form-signin-heading" style="text-align: center;">API Collector</h2>
+	<h2 class="form-signin-heading" style="text-align: center;">API Collector <small>(<a href="https://github.com/mpericay/apicollector">help</a>)</small></h2>
 
     <form role="form" id="form">
       <div class="form-group">
         <label for="profile">Profile</label>
         <select class="form-control" id="profile" name="profile">
+          <option>gbif</option>
           <option>gni</option>
+          <option>gni_detail</option>
           <option>google</option>
           <option>mapquest</option>
           <option selected>opencage</option>
         </select>
       </div>
       <div class="form-group">
-        <label for="limit">Limit</label>
-        <input type="text" class="form-control" id="limit" name="limit" value="5">
+        <label for="limit">Limit (max 100)</label>
+        <input type="number" class="form-control" max="100" id="limit" name="limit" value="5">
       </div>
       <div class="form-group">
-        <label for="sleep">Sleep</label>
-        <input type="text" class="form-control" id="sleep" name="sleep" value="1000">
+        <label for="sleep">Sleep (ms)</label>
+        <input type="number" class="form-control" max="10000" id="sleep" name="sleep" value="1000">
       </div>
       <div class="form-group">
         <label for="debug">Debug</label>
@@ -65,7 +67,7 @@
 
 <script type="text/javascript">
   
-  var loading = "loading ...";
+  var loading = "...loading ...";
   var drawResult = function(html) {
     $("#result").html(html);
   };
