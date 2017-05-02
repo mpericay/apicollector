@@ -13,8 +13,6 @@
 //
 //******************************************************************************
 
-if (eregi("class.odbc.php",$_SERVER['PHP_SELF'])) die();
-
 class database {
 
   var $db;

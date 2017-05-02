@@ -14,8 +14,6 @@
 //
 //******************************************************************************
 
-if (eregi("class.oci.php",$_SERVER['PHP_SELF'])) die();
-
 class database {
 
   var $db;
