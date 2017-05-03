@@ -266,7 +266,7 @@ class apiretriever {
 	    	for($i = 0; $i < count($this->config["queryfield"]); $i++) {
 		    	$field = $this->config["queryfield"][$i];
 		    	//does it need to be encoded?
-		    	$value = $this->config["queryfieldencode"] ? urlencode(utf8_encode ($name[$field])) : $name[$field];
+		    	$value = $this->config["queryfieldencode"] ? urlencode($name[$field]) : $name[$field];
 		    	//search_term=exact:[scientific_name] becomes search_term=exact:Abida+secale
 		    	$search = str_replace("[".$field."]", $value, $search);
 	    	}
@@ -319,10 +319,10 @@ class apiretriever {
     		$values ['google_lat'] = $first->location->lat;
     		$values ['google_lon'] = $first->location->lng;
 			if($first->bounds) {
-				$values ['google_ne_lat'] = $first->bounds->northeast->lat;
-				$values ['google_ne_lon'] = $first->bounds->northeast->lng;
-				$values ['google_sw_lat'] = $first->bounds->southwest->lat;
-				$values ['google_sw_lon'] = $first->bounds->southwest->lng;
+				//$values ['google_ne_lat'] = $first->bounds->northeast->lat;
+				//$values ['google_ne_lon'] = $first->bounds->northeast->lng;
+				//$values ['google_sw_lat'] = $first->bounds->southwest->lat;
+				//$values ['google_sw_lon'] = $first->bounds->southwest->lng;
 				$values ['google_radius_km'] = $this->getDistanceBetweenPoints($first->bounds->northeast->lat, $first->bounds->northeast->lng, $first->location->lat, $first->location->lng, "Km");
 			}
 			if($first->location_type) $values ['google_location_type'] = $first->location_type;
@@ -342,10 +342,10 @@ class apiretriever {
     		if($first->geometry->lat) $values ['opencage_lat'] = $first->geometry->lat;
     		if($first->geometry->lng) $values ['opencage_lon'] = $first->geometry->lng;
 			if($first->bounds) {
-				$values ['opencage_ne_lat'] = $first->bounds->northeast->lat;
-				$values ['opencage_ne_lon'] = $first->bounds->northeast->lng;
-				$values ['opencage_sw_lat'] = $first->bounds->southwest->lat;
-				$values ['opencage_sw_lon'] = $first->bounds->southwest->lng;
+				//$values ['opencage_ne_lat'] = $first->bounds->northeast->lat;
+				//$values ['opencage_ne_lon'] = $first->bounds->northeast->lng;
+				//$values ['opencage_sw_lat'] = $first->bounds->southwest->lat;
+				//$values ['opencage_sw_lon'] = $first->bounds->southwest->lng;
 				$values ['opencage_radius_km'] = $this->getDistanceBetweenPoints($first->bounds->northeast->lat, $first->bounds->northeast->lng, $first->geometry->lat, $first->geometry->lng, "Km");
 			}
 			if($first->confidence) $values['opencage_confidence'] = $first->confidence;
@@ -481,7 +481,7 @@ class apiretriever {
 		$allFieldsExist = true;
 		
 		for($i = 0; $i < count($fields); $i++) {
-    		$sql = "SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '"._DB_NAME."' AND TABLE_NAME = '".$this->config["dbtable"]."' AND COLUMN_NAME = '".$fields[$i]."'";
+    		$sql = "SELECT * FROM information_schema.COLUMNS WHERE TABLE_NAME = '".$this->config["dbtable"]."' AND COLUMN_NAME = '".$fields[$i]."'";
     		$field_exists = $this->executeSQL($sql,true);
 			
     		if(!$field_exists) {
@@ -508,7 +508,7 @@ class apiretriever {
 
 	public function getEscapeFunction() {
 
-		$func == "pg_escape_string";
+		$func = "pg_escape_string";
 		switch($this->config["dbtype"]) {
 			case "mysql":
 				$func = "mysql_escape_string";
