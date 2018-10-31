@@ -117,6 +117,7 @@ class apiretriever {
     private function setLoggerObject() {
         $log = new logger();
         if (!$log->init(_APICOLLECTOR_LOG_FILE)) {
+			die("Cannot log to "._APICOLLECTOR_LOG_FILE. ". Wrong path.");
             return false;
         }
         return $log;
