@@ -245,7 +245,8 @@ class apiretriever {
         if($onlynull) $sql .= " AND ". $this->config["updatefield"] . " IS NULL";
         if($limit) $sql .= " LIMIT ".$limit;
 
-        $names = $this->executeSQL($sql,true);
+        $names = $this->executeSQL("SET NAMES 'utf8'", false);
+		$names = $this->executeSQL($sql,true);
         
         if(!$names) die("No records match can be processed by ".$this->profile. ". Is the field '". $this->config["queryfield"][0] . "' always empty? Is the field '". $this->config["updatefield"] . "' always full (no null values)?");
         else $this->totalQueries = count($names);
@@ -324,7 +325,7 @@ class apiretriever {
 				//$values ['google_ne_lon'] = $first->bounds->northeast->lng;
 				//$values ['google_sw_lat'] = $first->bounds->southwest->lat;
 				//$values ['google_sw_lon'] = $first->bounds->southwest->lng;
-				$values ['google_radius_km'] = $this->getDistanceBetweenPoints($first->bounds->northeast->lat, $first->bounds->northeast->lng, $first->location->lat, $first->location->lng, "Km");
+				//$values ['google_radius_km'] = $this->getDistanceBetweenPoints($first->bounds->northeast->lat, $first->bounds->northeast->lng, $first->location->lat, $first->location->lng, "Km");
 			}
 			if($first->location_type) $values ['google_location_type'] = $first->location_type;
     	} else {
@@ -512,7 +513,7 @@ class apiretriever {
 		$func = "pg_escape_string";
 		switch($this->config["dbtype"]) {
 			case "mysql":
-				$func = "mysql_escape_string";
+				$func = "mysql_real_escape_string";
 				break;
 			default:
 				break;
