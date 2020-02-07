@@ -1,7 +1,7 @@
 apicollector
 ============
 
-Apicollector launches calls to APIs from a field in a database and stores values. Works virtually for any DB, but has been tested in PostgreSQL and MySQL.
+Apicollector launches calls to APIs from a field in a database and stores values. Has been tested in PostgreSQL and MySQL.
 
 Syntax: http://{baseUrl}/index.php?PROFILE=google&LIMIT=5&SLEEP=100&DEBUG=true
 
