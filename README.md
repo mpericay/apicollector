@@ -1,13 +1,26 @@
 apicollector
 ============
 
-Apicollector launches calls to APIs from a field in a database and stores values. Has been tested in PostgreSQL and MySQL.
+Apicollector launches calls to APIs from fields in a database and stores values. Has been tested in PostgreSQL and MySQL.
 
-##Deployment
+## Deployment
 It runs under PHP5, so a good idea is to use Docker, mounting your local dir as a volume
-`docker run -d -p 8080:80 -v /Users/marti/Documents/github/apicollector:/var/www/html nimmis/apache-php5`
 
-##How-to
+```bash
+docker run -d -p 8080:80 -v /Users/marti/Documents/github/apicollector:/var/www/html nimmis/apache-php5
+```
+
+In Mac, you can install Apache HTTPD with Homebrew and then PHP 5.6:
+[https://getgrav.org/blog/macos-catalina-apache-multiple-php-versions](https://getgrav.org/blog/macos-catalina-apache-multiple-php-versions)
+
+
+To start server:
+
+```bash
+sudo brew services start httpd
+```
+
+## How-to
 Syntax: http://{baseUrl}/index.php?PROFILE=google&LIMIT=5&SLEEP=100&DEBUG=true
 
 Params:
